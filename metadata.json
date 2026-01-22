@@ -1,0 +1,8 @@
+{
+  "name": "MentorLink Pro",
+  "description": "A comprehensive mentorship management system featuring AI-powered matching, session scheduling, goal tracking, and feedback loops.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
