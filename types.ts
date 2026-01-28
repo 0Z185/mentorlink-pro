@@ -1,8 +1,53 @@
 
+
+
+export type Permission =
+  | 'view_dashboard'
+  | 'manage_users'
+  | 'manage_settings'
+  | 'view_reports'
+  | 'edit_goals'
+  | 'schedule_sessions';
+
+export interface TenantLabels {
+  mentor: string;
+  mentee: string;
+  program_name: string;
+}
+
+export interface TenantRules {
+  max_mentees_per_mentor: number;
+  min_sessions_for_completion: number;
+  session_duration_minutes: number;
+  require_feedback: boolean;
+}
+
+export interface TenantRoleConfig {
+  permissions: Permission[];
+  label_override?: string; // e.g. "Lead Coach" for Mentor
+}
+
+export interface TenantConfig {
+  primary_color?: string;
+  logo?: string;
+  features?: Record<string, boolean>;
+  labels: TenantLabels;
+  rules: TenantRules;
+  roles: Record<string, TenantRoleConfig>; // key is UserRole enum value
+}
+
+export interface Tenant {
+  tenant_id: string;
+  name: string;
+  slug: string;
+  domain?: string;
+  config: TenantConfig;
+}
+
 export enum UserRole {
   MENTOR = 'Mentor',
   MENTEE = 'Mentee',
-  ADMIN = 'Admin'
+  HR_ADMIN = 'hr_admin'
 }
 
 export enum MentorshipStatus {
@@ -36,6 +81,7 @@ export enum PilotOutcome {
 
 export interface Pilot {
   pilot_id: string;
+  tenant_id: string;
   name: string;
   start_date: string;
   end_date: string;
@@ -47,6 +93,7 @@ export interface Pilot {
 
 export interface User {
   user_id: string;
+  tenant_id: string;
   name: string;
   email: string;
   phone?: string;
@@ -66,6 +113,7 @@ export interface User {
 
 export interface Session {
   session_id: string;
+  tenant_id: string;
   mentor_id: string;
   mentee_id: string;
   scheduled_datetime: string;
@@ -77,6 +125,7 @@ export interface Session {
 
 export interface Notification {
   notification_id: string;
+  tenant_id: string;
   user_id: string;
   title: string;
   message: string;
@@ -87,6 +136,7 @@ export interface Notification {
 
 export interface Goal {
   goal_id: string;
+  tenant_id: string;
   mentee_id: string;
   goal_title: string;
   goal_description: string;
@@ -98,6 +148,7 @@ export interface Goal {
 
 export interface SessionFeedback {
   feedback_id: string;
+  tenant_id: string;
   session_id: string;
   from_user_id: string;
   to_user_id: string;
