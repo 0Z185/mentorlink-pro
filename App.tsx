@@ -9,6 +9,7 @@ import {
   Settings, Menu
 } from 'lucide-react';
 import AdminDashboard from './pages/admin/AdminDashboard';
+import PeopleDirectory from './pages/admin/PeopleDirectory';
 import MentorDashboard from './pages/mentor/MentorDashboard';
 import MenteeDashboard from './pages/mentee/MenteeDashboard';
 import AppLayout from './components/layout/AppLayout';
@@ -30,6 +31,8 @@ const AppContent: React.FC = () => {
   const [analytics, setAnalytics] = useState<any>(null);
   const [pairList, setPairList] = useState<any[]>([]);
   const [pilots, setPilots] = useState<Pilot[]>([]);
+  const [pendingUsers, setPendingUsers] = useState<User[]>([]);
+  const [allUsers, setAllUsers] = useState<User[]>([]);
   const [selectedPilotReport, setSelectedPilotReport] = useState<PilotEvaluationReport | null>(null);
 
   const [loading, setLoading] = useState(false);
@@ -80,14 +83,18 @@ const AppContent: React.FC = () => {
       }
 
       if (currentUser.role === UserRole.HR_ADMIN) {
-        const [stats, pairs, allPilots] = await Promise.all([
+        const [stats, pairs, allPilots, pending, users] = await Promise.all([
           api.getGlobalAnalytics(currentUser),
           api.getAdminPairList(currentUser),
-          api.getPilots()
+          api.getPilots(),
+          api.getPendingUsers(),
+          api.getUsers()
         ]);
         setAnalytics(stats);
         setPairList(pairs);
         setPilots(allPilots);
+        setPendingUsers(pending);
+        setAllUsers(users);
       }
     } catch (err: any) {
       console.error(err);
@@ -170,11 +177,12 @@ const AppContent: React.FC = () => {
 
   const handleLogin = async (email: string) => {
     setLoading(true);
+    setError(null);
     try {
       const u = await api.login(email);
       if (u) {
         setCurrentUser(u);
-        setActiveTab(u.role === UserRole.HR_ADMIN ? 'dashboard' : 'dashboard');
+        setActiveTab('dashboard');
       } else {
         setError("User not found. Please sign up.");
       }
@@ -183,6 +191,12 @@ const AppContent: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSignOut = () => {
+    setCurrentUser(null);
+    setActiveTab('dashboard');
+    setError(null);
   };
 
 
@@ -195,27 +209,25 @@ const AppContent: React.FC = () => {
       <Login
         tenantName={tenant?.name}
         onLogin={handleLogin}
-        onSignup={(data) => {
-          const doSignup = async () => {
-            setLoading(true);
-            try {
-              const interestsArray = data.interests.split(',').map(s => s.trim()).filter(Boolean);
-              const newUser = await api.signUp({
-                name: data.name,
-                email: data.email,
-                role: data.role,
-                interests: interestsArray,
-                avatar: `https://picsum.photos/seed/${data.name.replace(/\s+/g, '')}/200`
-              }, tenant?.tenant_id || '');
-              setCurrentUser(newUser);
-              setActiveTab('dashboard');
-            } catch (err: any) {
-              setError(err.message);
-            } finally {
-              setLoading(false);
-            }
-          };
-          doSignup();
+        onSignup={async (data) => {
+          setLoading(true);
+          setError(null);
+          try {
+            const interestsArray = data.interests.split(',').map(s => s.trim()).filter(Boolean);
+            await api.signUp({
+              name: data.name,
+              email: data.email,
+              role: data.role,
+              department: data.department,
+              interests: interestsArray,
+              avatar: `https://picsum.photos/seed/${data.name.replace(/\s+/g, '')}/200`
+            }, tenant?.tenant_id || '');
+          } catch (err: any) {
+            setError(err.message);
+            throw err; // Re-throw to let Login know it failed
+          } finally {
+            setLoading(false);
+          }
         }}
         error={error}
         loading={loading}
@@ -229,12 +241,37 @@ const AppContent: React.FC = () => {
       role={currentUser.role === UserRole.HR_ADMIN ? 'admin' : currentUser.role === UserRole.MENTOR ? 'mentor' : 'mentee'}
       activeTab={activeTab}
       onTabChange={(tab) => setActiveTab(tab as any)}
+      onSignOut={handleSignOut}
     >
       {currentUser.role === UserRole.HR_ADMIN && (
         <>
-          {activeTab === 'dashboard' && <AdminDashboard />}
+          {activeTab === 'dashboard' && (
+            <AdminDashboard
+              pendingUsers={pendingUsers}
+              onApprove={async (id) => {
+                await api.approveUser(id);
+                loadUserData();
+              }}
+              onReject={async (id) => {
+                await api.rejectUser(id);
+                loadUserData();
+              }}
+            />
+          )}
           {activeTab === 'programs' && <div className="p-8"><h2 className="text-2xl font-bold text-slate-900">Programs Management</h2><p className="text-slate-600 mt-2">Manage mentorship cohorts here.</p></div>}
-          {activeTab === 'people' && <div className="p-8"><h2 className="text-2xl font-bold text-slate-900">People Directory</h2><p className="text-slate-600 mt-2">Manage mentors and mentees.</p></div>}
+          {activeTab === 'people' && (
+            <PeopleDirectory
+              users={allUsers}
+              onApprove={async (id) => {
+                await api.approveUser(id);
+                loadUserData();
+              }}
+              onReject={async (id) => {
+                await api.rejectUser(id);
+                loadUserData();
+              }}
+            />
+          )}
           {activeTab === 'reports' && <div className="p-8"><h2 className="text-2xl font-bold text-slate-900">Reports & Analytics</h2><p className="text-slate-600 mt-2">System-wide performance metrics.</p></div>}
           {activeTab === 'settings' && <div className="p-8"><h2 className="text-2xl font-bold text-slate-900">Settings</h2><p className="text-slate-600 mt-2">Configure tenant preferences.</p></div>}
         </>

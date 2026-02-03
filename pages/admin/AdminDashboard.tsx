@@ -1,7 +1,13 @@
-import React from 'react';
-import { Users, Briefcase, TrendingUp, AlertCircle, Plus, Filter, Download } from 'lucide-react';
+import { Users, Briefcase, TrendingUp, AlertCircle, Plus, Filter, Download, UserCheck, UserX, Clock } from 'lucide-react';
+import { User } from '../../types';
 
-export default function AdminDashboard() {
+interface AdminDashboardProps {
+    pendingUsers?: User[];
+    onApprove?: (id: string) => void;
+    onReject?: (id: string) => void;
+}
+
+export default function AdminDashboard({ pendingUsers = [], onApprove, onReject }: AdminDashboardProps) {
     return (
         <div className="space-y-8">
             {/* Header Section */}
@@ -71,6 +77,76 @@ export default function AdminDashboard() {
                     </div>
                 </div>
             </div>
+
+            {/* Pending Approvals Section */}
+            {pendingUsers.length > 0 && (
+                <div className="bg-white border border-slate-100 rounded-lg shadow-sm overflow-hidden animate-in fade-in slide-in-from-top-4 duration-500">
+                    <div className="p-6 border-b border-brand-blue-50 flex items-center justify-between bg-orange-50/30">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-orange-100 rounded-lg text-orange-600">
+                                <Clock size={20} />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-medium text-slate-900">Pending Validations</h3>
+                                <p className="text-xs text-slate-600">New user registrations requiring HR approval</p>
+                            </div>
+                        </div>
+                        <span className="px-3 py-1 bg-orange-100 text-orange-600 text-xs font-bold rounded-full">
+                            {pendingUsers.length} Action Required
+                        </span>
+                    </div>
+
+                    <div className="divide-y divide-slate-100">
+                        {pendingUsers.map((user) => (
+                            <div key={user.user_id} className="p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 hover:bg-slate-50 transition-colors">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center text-slate-400 font-bold overflow-hidden border border-slate-200">
+                                        {user.avatar ? (
+                                            <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
+                                        ) : (
+                                            user.name.charAt(0)
+                                        )}
+                                    </div>
+                                    <div>
+                                        <div className="font-bold text-slate-900">{user.name}</div>
+                                        <div className="text-sm text-slate-500 flex items-center gap-2">
+                                            <span>{user.email}</span>
+                                            <span className="w-1 h-1 bg-slate-300 rounded-full"></span>
+                                            <span className="font-medium text-slate-700">{user.department}</span>
+                                        </div>
+                                        <div className="mt-1 flex gap-2">
+                                            {user.interests.map(interest => (
+                                                <span key={interest} className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">
+                                                    {interest}
+                                                </span>
+                                            ))}
+                                            <span className="text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-bold uppercase tracking-tight">
+                                                {user.role}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-3 w-full md:w-auto">
+                                    <button
+                                        onClick={() => onReject?.(user.user_id)}
+                                        className="flex-1 md:flex-none flex items-center justify-center px-4 py-2 border border-slate-200 rounded-md text-slate-600 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-100 transition-all text-sm font-medium"
+                                    >
+                                        <UserX className="w-4 h-4 mr-2" />
+                                        Reject
+                                    </button>
+                                    <button
+                                        onClick={() => onApprove?.(user.user_id)}
+                                        className="flex-1 md:flex-none flex items-center justify-center px-4 py-2 bg-slate-900 text-white rounded-md hover:bg-slate-800 transition-all shadow-sm text-sm font-medium"
+                                    >
+                                        <UserCheck className="w-4 h-4 mr-2" />
+                                        Approve Access
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             {/* Main Content Area - Table First Layout */}
             <div className="bg-white border border-slate-100 rounded-lg shadow-sm overflow-hidden">

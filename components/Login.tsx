@@ -1,31 +1,58 @@
 import React, { useState } from 'react';
 import { UserRole } from '../types';
-import { Users, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { Users, ArrowRight, CheckCircle2, Clock } from 'lucide-react';
 
 interface LoginProps {
     onLogin: (email: string) => void;
-    onSignup: (data: { name: string; email: string; role: UserRole; interests: string }) => void;
+    onSignup: (data: { name: string; email: string; role: UserRole; department: string; interests: string }) => Promise<void>;
     error?: string | null;
     loading?: boolean;
     tenantName?: string;
 }
 
+const DEPARTMENTS = [
+    "ADMIN",
+    "BD",
+    "BUSINESS OPERATIONS",
+    "C4H",
+    "EXECUTIVE OFFICE",
+    "FINANCE",
+    "HnB",
+    "HR",
+    "IDEC",
+    "IPPIS",
+    "IT",
+    "NASARAWA",
+    "NBMS",
+    "NIGER",
+    "POSSAP",
+    "R&PD",
+    "VREG",
+    "WACS-PAYDAY"
+];
+
 const Login: React.FC<LoginProps> = ({ onLogin, onSignup, error, loading, tenantName }) => {
-    const [mode, setMode] = useState<'login' | 'signup'>('login');
+    const [mode, setMode] = useState<'login' | 'signup' | 'pending'>('login');
     const [email, setEmail] = useState('');
     const [signupData, setSignupData] = useState({
         name: '',
         email: '',
         role: UserRole.MENTEE,
+        department: '',
         interests: ''
     });
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (mode === 'login') {
             onLogin(email);
-        } else {
-            onSignup(signupData);
+        } else if (mode === 'signup') {
+            try {
+                await onSignup(signupData);
+                setMode('pending');
+            } catch (err) {
+                // Error is handled via props and displayed by the component
+            }
         }
     };
 
@@ -119,6 +146,27 @@ const Login: React.FC<LoginProps> = ({ onLogin, onSignup, error, loading, tenant
                                         onChange={(e) => setSignupData({ ...signupData, email: e.target.value })}
                                     />
                                 </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-900 mb-2">Department / Business Unit</label>
+                                    <div className="relative">
+                                        <select
+                                            required
+                                            className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-all font-medium appearance-none"
+                                            value={signupData.department}
+                                            onChange={(e) => setSignupData({ ...signupData, department: e.target.value })}
+                                        >
+                                            <option value="" disabled>Select Department</option>
+                                            {DEPARTMENTS.map(dept => (
+                                                <option key={dept} value={dept}>{dept}</option>
+                                            ))}
+                                        </select>
+                                        <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                                            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                <path d="M2.5 4.5L6 8L9.5 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                                            </svg>
+                                        </div>
+                                    </div>
+                                </div>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-xs font-bold text-slate-900 mb-2">Role</label>
@@ -142,6 +190,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, onSignup, error, loading, tenant
                                         <label className="block text-xs font-bold text-slate-900 mb-2">Interests</label>
                                         <input
                                             type="text"
+                                            required
                                             placeholder="e.g. UX, React"
                                             className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-all font-medium"
                                             value={signupData.interests}
@@ -152,20 +201,39 @@ const Login: React.FC<LoginProps> = ({ onLogin, onSignup, error, loading, tenant
                             </>
                         )}
 
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            className="w-full py-3.5 bg-slate-900 text-white rounded-lg font-bold text-sm hover:bg-slate-800 active:scale-[0.99] transition-all flex items-center justify-center gap-2 group"
-                        >
-                            {loading ? (
-                                <span className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-                            ) : (
-                                <>
-                                    {mode === 'login' ? 'Continue' : 'Create Account'}
-                                    <ArrowRight size={16} className="text-white/40 group-hover:text-white group-hover:translate-x-0.5 transition-all" />
-                                </>
-                            )}
-                        </button>
+                        {mode === 'pending' ? (
+                            <div className="bg-orange-50 border border-orange-100 p-6 rounded-xl text-center space-y-4">
+                                <div className="inline-flex items-center justify-center w-12 h-12 bg-orange-100 text-orange-600 rounded-full">
+                                    <Clock size={24} />
+                                </div>
+                                <h3 className="text-lg font-bold text-slate-900">Registration Pending</h3>
+                                <p className="text-sm text-slate-600 leading-relaxed">
+                                    Your account for <span className="font-bold">{signupData.email}</span> has been created but requires HR validation before you can log in.
+                                    You will be notified once an administrator approves your access.
+                                </p>
+                                <button
+                                    onClick={() => setMode('login')}
+                                    className="text-xs font-bold text-[#ef7f1a] hover:underline"
+                                >
+                                    Return to Sign In
+                                </button>
+                            </div>
+                        ) : (
+                            <button
+                                type="submit"
+                                disabled={loading}
+                                className="w-full py-3.5 bg-slate-900 text-white rounded-lg font-bold text-sm hover:bg-slate-800 active:scale-[0.99] transition-all flex items-center justify-center gap-2 group"
+                            >
+                                {loading ? (
+                                    <span className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                                ) : (
+                                    <>
+                                        {mode === 'login' ? 'Continue' : 'Create Account'}
+                                        <ArrowRight size={16} className="text-white/40 group-hover:text-white group-hover:translate-x-0.5 transition-all" />
+                                    </>
+                                )}
+                            </button>
+                        )}
                     </form>
 
                     {error && (

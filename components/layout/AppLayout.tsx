@@ -7,13 +7,14 @@ interface LayoutProps {
     role?: 'admin' | 'mentor' | 'mentee';
     activeTab: string;
     onTabChange: (tab: string) => void;
+    onSignOut?: () => void;
 }
 
-export default function AppLayout({ children, role = 'admin', activeTab, onTabChange }: LayoutProps) {
+export default function AppLayout({ children, role = 'admin', activeTab, onTabChange, onSignOut }: LayoutProps) {
     return (
         <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
             {/* Navigation */}
-            <Sidebar role={role} currentTab={activeTab} onNavigate={onTabChange} />
+            <Sidebar role={role} currentTab={activeTab} onNavigate={onTabChange} onSignOut={onSignOut} />
             <MobileNav role={role} currentTab={activeTab} onNavigate={onTabChange} />
 
             {/* Main Content Area */}

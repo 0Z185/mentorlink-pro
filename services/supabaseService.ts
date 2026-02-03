@@ -35,6 +35,11 @@ class SupabaseService {
         return data || [];
     }
 
+    private async sendEmail(to: string, subject: string, body: string, userId: string, tenantId: string) {
+        console.log(`%c[Supabase Simulated Email Sent] To: ${to}\nSubject: ${subject}\n\n${body}`, "color: #ef7f1a; font-weight: bold;");
+        await this.addNotification(userId, subject, body, 'info', tenantId);
+    }
+
     async login(email: string): Promise<User | null> {
         const { data, error } = await supabase
             .from('users')
@@ -46,15 +51,21 @@ class SupabaseService {
             console.error('Login error:', error);
             return null;
         }
+
+        if (data && data.status !== 'Approved') {
+            throw new Error(`Account status: ${data.status}. Please wait for admin approval.`);
+        }
+
         return data;
     }
 
     async signUp(userData: Partial<User>, tenantId: string): Promise<User> {
-        const { data, error } = await supabase
+        const { data: newUser, error } = await supabase
             .from('users')
             .insert([{
                 ...userData,
                 tenant_id: tenantId,
+                status: 'Pending',
                 mentorship_status: MentorshipStatus.UNASSIGNED,
                 cancellation_count: 0
             }])
@@ -62,7 +73,20 @@ class SupabaseService {
             .single();
 
         if (error) throw error;
-        return data;
+
+        // Notify HR Admins
+        const hrAdmins = await this.getUsers(UserRole.HR_ADMIN, tenantId);
+        for (const admin of hrAdmins) {
+            await this.sendEmail(
+                admin.email,
+                'Action Required: New User Signup',
+                `A new user, ${newUser.name} (${newUser.email}), from the ${newUser.department} department has signed up and is pending review.`,
+                admin.user_id,
+                tenantId
+            );
+        }
+
+        return newUser;
     }
 
     async getMyMentees(mentorId: string): Promise<User[]> {
@@ -104,12 +128,59 @@ class SupabaseService {
         if (tenantId) {
             query = query.eq('tenant_id', tenantId);
         }
-        const { data, error } = await query;
+        const { data, error } = await query.order('created_at', { ascending: false });
         if (error) {
             console.error('Error fetching users:', error);
             return [];
         }
         return data || [];
+    }
+
+    async getPendingUsers(): Promise<User[]> {
+        const { data, error } = await supabase
+            .from('users')
+            .select('*')
+            .eq('status', 'Pending');
+
+        if (error) {
+            console.error('Error fetching pending users:', error);
+            return [];
+        }
+        return data || [];
+    }
+
+    async approveUser(userId: string): Promise<void> {
+        const { data: user, error: fetchError } = await supabase
+            .from('users')
+            .select('*')
+            .eq('user_id', userId)
+            .single();
+
+        if (fetchError || !user) throw new Error("User not found");
+
+        const { error } = await supabase
+            .from('users')
+            .update({ status: 'Approved' })
+            .eq('user_id', userId);
+
+        if (error) throw error;
+
+        await this.sendEmail(
+            user.email,
+            'Welcome to MentorLink!',
+            `Hi ${user.name}, your account access has been validated by HR. You can now access your dashboard and start your mentorship journey here: http://localhost:3000/`,
+            userId,
+            user.tenant_id
+        );
+    }
+
+    async rejectUser(userId: string): Promise<void> {
+        const { error } = await supabase
+            .from('users')
+            .update({ status: 'Rejected' })
+            .eq('user_id', userId);
+
+        if (error) throw error;
     }
 
     async getPilots(): Promise<Pilot[]> {

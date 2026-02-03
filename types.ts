@@ -58,6 +58,12 @@ export enum MentorshipStatus {
   UNASSIGNED = 'Unassigned'
 }
 
+export enum UserStatus {
+  PENDING = 'Pending',
+  APPROVED = 'Approved',
+  REJECTED = 'Rejected'
+}
+
 export enum SessionStatus {
   PENDING = 'Pending',
   SCHEDULED = 'Scheduled',
@@ -96,8 +102,10 @@ export interface User {
   tenant_id: string;
   name: string;
   email: string;
+  department: string;
   phone?: string;
   role: UserRole;
+  status: UserStatus;
   skills?: string[];
   experience_years?: number;
   interests: string[];

@@ -29,6 +29,8 @@ CREATE TABLE users (
     email VARCHAR(255) NOT NULL, -- Email unique per tenant usually, but globally unique simplifies auth for now. Let's make it unique per tenant.
     phone VARCHAR(50),
     role VARCHAR(20) CHECK (role IN ('hr_admin', 'Mentor', 'Mentee')) NOT NULL,
+    status VARCHAR(20) CHECK (status IN ('Pending', 'Approved', 'Rejected')) DEFAULT 'Pending',
+    department VARCHAR(255),
     skills TEXT[],
     experience_years INT,
     interests TEXT[],
@@ -180,13 +182,13 @@ VALUES ('00000000-0000-0000-0000-000000000000', 'MentorLink', 'mentorlink', 'app
 }');
 
 -- 2. Create Users (Linked to Tenant)
-INSERT INTO users (user_id, tenant_id, name, email, role, skills, experience_years, interests, availability_schedule, mentorship_status, avatar) 
+INSERT INTO users (user_id, tenant_id, name, email, role, status, department, skills, experience_years, interests, availability_schedule, mentorship_status, avatar) 
 VALUES 
-('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000000', 'Sarah Chen', 'sarah.c@mentor.com', 'Mentor', ARRAY['React', 'System Design', 'Leadership', 'TypeScript'], 12, ARRAY['Tech for Good', 'Architecture'], '{"Monday": ["09:00-11:00"], "Thursday": ["14:00-16:00"]}', 'Active', 'https://picsum.photos/seed/sarah/200'),
-('00000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000000', 'Alex Rivera', 'alex.r@mentee.com', 'Mentee', ARRAY['React', 'Web Development'], 2, ARRAY['Web Development', 'UI/UX', 'React'], '{"Monday": ["10:00-11:00"], "Friday": ["15:00-16:00"]}', 'Active', 'https://picsum.photos/seed/alex/200'),
-('00000000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-000000000000', 'David HR', 'hr@mentorlink.com', 'hr_admin', ARRAY[]::TEXT[], 10, ARRAY[]::TEXT[], '{}', 'Active', 'https://picsum.photos/seed/admin/200'),
-('00000000-0000-0000-0000-000000000004', '00000000-0000-0000-0000-000000000000', 'Marcus Thorne', 'marcus.t@mentor.com', 'Mentor', ARRAY['UI/UX', 'Figma', 'Product Management'], 8, ARRAY['Design Systems'], '{"Tuesday": ["10:00-12:00"], "Friday": ["15:00-17:00"]}', 'Active', 'https://picsum.photos/seed/marcus/200'),
-('00000000-0000-0000-0000-000000000005', '00000000-0000-0000-0000-000000000000', 'Elena Vance', 'elena.v@mentee.com', 'Mentee', ARRAY['Figma', 'UI/UX'], 1, ARRAY['Figma', 'UI/UX', 'Product Management'], '{"Tuesday": ["11:00-12:00"], "Wednesday": ["09:00-10:00"]}', 'Unassigned', 'https://picsum.photos/seed/elena/200');
+('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000000', 'Sarah Chen', 'sarah.c@mentor.com', 'Mentor', 'Approved', 'Engineering', ARRAY['React', 'System Design', 'Leadership', 'TypeScript'], 12, ARRAY['Tech for Good', 'Architecture'], '{"Monday": ["09:00-11:00"], "Thursday": ["14:00-16:00"]}', 'Active', 'https://picsum.photos/seed/sarah/200'),
+('00000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000000', 'Alex Rivera', 'alex.r@mentee.com', 'Mentee', 'Approved', 'Engineering', ARRAY['React', 'Web Development'], 2, ARRAY['Web Development', 'UI/UX', 'React'], '{"Monday": ["10:00-11:00"], "Friday": ["15:00-16:00"]}', 'Active', 'https://picsum.photos/seed/alex/200'),
+('00000000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-000000000000', 'David HR', 'hr@mentorlink.com', 'hr_admin', 'Approved', 'HR', ARRAY[]::TEXT[], 10, ARRAY[]::TEXT[], '{}', 'Active', 'https://picsum.photos/seed/admin/200'),
+('00000000-0000-0000-0000-000000000004', '00000000-0000-0000-0000-000000000000', 'Marcus Thorne', 'marcus.t@mentor.com', 'Mentor', 'Approved', 'Design', ARRAY['UI/UX', 'Figma', 'Product Management'], 8, ARRAY['Design Systems'], '{"Tuesday": ["10:00-12:00"], "Friday": ["15:00-17:00"]}', 'Active', 'https://picsum.photos/seed/marcus/200'),
+('00000000-0000-0000-0000-000000000005', '00000000-0000-0000-0000-000000000000', 'Elena Vance', 'elena.v@mentee.com', 'Mentee', 'Approved', 'Design', ARRAY['Figma', 'UI/UX'], 1, ARRAY['Figma', 'UI/UX', 'Product Management'], '{"Tuesday": ["11:00-12:00"], "Wednesday": ["09:00-10:00"]}', 'Unassigned', 'https://picsum.photos/seed/elena/200');
 
 UPDATE users SET assigned_mentor_id = '00000000-0000-0000-0000-000000000001' WHERE email = 'alex.r@mentee.com';
 
